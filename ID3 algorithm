@@ -1,0 +1,75 @@
+import csv
+import math
+from collections import Counter
+
+def read_csv(file_path):
+    with open(file_path, 'r') as file:
+        reader = csv.reader(file)
+        data = list(reader)
+    return data[0], data[1:]
+
+def entropy(examples):
+    labels = [example[-1] for example in examples]
+    label_counts = Counter(labels)
+    probabilities = [count / len(examples) for count in label_counts.values()]
+    return -sum(p * math.log2(p) for p in probabilities)
+
+def info_gain(examples, attribute, attr_index):
+    subset_entropy = 0
+    attribute_values = set([example[attr_index] for example in examples])
+    for value in attribute_values:
+        subset = [example for example in examples if example[attr_index] == value]
+        subset_entropy += (len(subset) / len(examples)) * entropy(subset)
+    return entropy(examples) - subset_entropy
+
+def best_attribute(examples, attributes):
+    gains = [(attribute, info_gain(examples, attribute, index)) for index, attribute in enumerate(attributes[:-1])]
+    best_attr = max(gains, key=lambda item: item[1])
+    return best_attr[0]
+
+def majority_class(examples):
+    labels = [example[-1] for example in examples]
+    return Counter(labels).most_common(1)[0][0]
+
+def id3(examples, attributes):
+    labels = [example[-1] for example in examples]
+    if len(set(labels)) == 1:
+        return labels[0]
+    if not attributes:
+        return majority_class(examples)
+    best_attr = best_attribute(examples, attributes)
+    tree = {best_attr: {}}
+    best_attr_index = attributes.index(best_attr)
+    attribute_values = set([example[best_attr_index] for example in examples])
+    for value in attribute_values:
+        subset = [example for example in examples if example[best_attr_index] == value]
+        if not subset:
+            tree[best_attr][value] = majority_class(examples)
+        else:
+            subtree = id3(subset, [attr for attr in attributes if attr != best_attr])
+            tree[best_attr][value] = subtree
+    return tree
+
+def classify(tree, sample):
+    if not isinstance(tree, dict):
+        return tree
+    attribute = list(tree.keys())[0]
+    subtree = tree[attribute].get(sample[attribute], majority_class(sample))
+    return classify(subtree, sample)
+
+# Read the dataset and build the decision tree
+file_path = 'data.csv'
+attributes, examples = read_csv(file_path)
+tree = id3(examples, attributes)
+
+# Classify a new sample
+new_sample = {
+    'Outlook': 'Sunny',
+    'Temperature': 'Cool',
+    'Humidity': 'High',
+    'Windy': 'True'
+}
+classification = classify(tree, new_sample)
+
+print("Decision Tree:", tree)
+print("Classification of new sample:", classification)
