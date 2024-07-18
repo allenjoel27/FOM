@@ -1,0 +1,29 @@
+import csv
+
+def read_csv(file_path):
+    with open(file_path, 'r') as file:
+        reader = csv.reader(file)
+        data = list(reader)
+    return data
+
+def find_s(training_data):
+    hypothesis = None
+    for example in training_data:
+        if example[-1] == 'Yes':
+            hypothesis = example[:-1]
+            break
+
+    for example in training_data:
+        if example[-1] == 'Yes':
+            for i in range(len(hypothesis)):
+                if example[i] != hypothesis[i]:
+                    hypothesis[i] = '?'
+
+    return hypothesis
+
+file_path = r'C:\Users\VasanthaKumar\Documents\samplefile.csv'
+training_data = read_csv(file_path)
+
+most_specific_hypothesis = find_s(training_data)
+
+print("Most Specific Hypothesis:", most_specific_hypothesis)
